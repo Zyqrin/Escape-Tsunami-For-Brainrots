@@ -1,0 +1,76 @@
+
+local isPremium = false -- ganti true kalau user premium
+
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "Zyqrin Hub || ETFB",
+    Icon = "door-open", -- lucide icon. optional
+    Author = "by .ftgs and .ftgs", -- optional
+})
+
+local Window = WindUI:CreateWindow({
+    -- ...
+    
+    KeySystem = {                                                   
+        Note = "Example Key System. With platoboost.",              
+        API = {                                                     
+            { -- PlatoBoost
+                Type = "platoboost",                                
+                ServiceId = 19724, -- service id
+                Secret = "platoboost-secret", -- platoboost secret
+                SaveKey = false,
+            },                                                      
+        },                                                          
+    },                                                              
+})
+
+local Tab = Window:Tab({
+    Title = "Tab Title",
+    Icon = "bird", -- optional
+    Locked = false,
+})
+
+
+-- Fitur gratis (siapa pun bisa pakai)
+local FreeToggle = Tab:Toggle({
+    Title = "Free Toggle",
+    Desc = "Bisa diakses semua user",
+    Icon = "bird",
+    Type = "Checkbox",
+    Value = false,
+    Callback = function(state)
+        print("Free Toggle: " .. tostring(state))
+    end
+})
+
+-- Fitur premium (hanya bisa diaktifkan kalau premium)
+local PremiumToggle = Tab:Toggle({
+    Title = "Premium Toggle",
+    Desc = "Hanya bisa digunakan user premium",
+    Icon = "star",
+    Type = "Checkbox",
+    Value = false,
+    Locked = not isPremium, -- tampil tapi terkunci kalau bukan premium
+    Callback = function(state)
+        if isPremium then
+            print("Premium feature activated: " .. tostring(state))
+        else
+            print("You need premium to use this feature!")
+        end
+    end
+})
+
+-- Reset HWID
+local HWID = "ABC123" -- contoh HWID
+local ResetHWIDButton = Tab:Button({
+    Title = "Reset HWID",
+    Desc = "Reset HWID kamu",
+    Icon = "refresh",
+    Callback = function()
+        HWID = nil
+        print("HWID has been reset!")
+        -- Kalau mau, bisa otomatis set isPremium = false
+        isPremium = false
+    end
+})
