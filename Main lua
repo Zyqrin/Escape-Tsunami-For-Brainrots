@@ -4,6 +4,12 @@ local isPremium = false -- ganti true kalau user premium
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 local Window = WindUI:CreateWindow({
+    Title = "Zyqrin Hub || ETFB",
+    Icon = "door-open", -- lucide icon. optional
+    Author = "by .ftgs and .ftgs", -- optional
+})
+
+local Window = WindUI:CreateWindow({
     -- ...
     
     KeySystem = {                                                   
@@ -12,16 +18,10 @@ local Window = WindUI:CreateWindow({
             { -- PlatoBoost
                 Type = "platoboost",                                
                 ServiceId = 19724, -- service id
-                Secret = "platoboost-secret", -- platoboost secret
+                Secret = "7065f5da-64e9-4933-b1ae-f920906e66d0", -- platoboost secret
             },                                                      
         },                                                          
     },                                                              
-})
-
-local Window = WindUI:CreateWindow({
-    Title = "Zyqrin Hub || ETFB",
-    Icon = "door-open", -- lucide icon. optional
-    Author = "by .ftgs and .ftgs", -- optional
 })
 
 local Tab = Window:Tab({
