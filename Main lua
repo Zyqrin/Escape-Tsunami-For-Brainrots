@@ -18,7 +18,7 @@ local Window = WindUI:CreateWindow({
             { -- PlatoBoost
                 Type = "platoboost",                                
                 ServiceId = 19724, -- service id
-                Secret = "7065f5da-64e9-4933-b1ae-f920906e66d0", -- platoboost secret
+                Secret = "platoboost-secret", -- platoboost secret
             },                                                      
         },                                                          
     },                                                              
