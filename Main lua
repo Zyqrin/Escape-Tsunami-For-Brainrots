@@ -6,18 +6,18 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 local Window = WindUI:CreateWindow({
     Title = "Zyqrin Hub || ETFB",
     Icon = "door-open", -- lucide icon. optional
-    Author = "by .ftgs and .ftgs", -- optional
+    Author = "by .ftgs and .ftgs", -- optiona
     KeySystem = {                                                   
-        Note = "Example Key System. With platoboost.",              
+        Note = "Example Key System. With pandadevelopment.",        
         API = {                                                     
-            { -- PlatoBoost
-                Type = "platoboost",                                
-                ServiceId = 19724, -- service id
-                Secret = "platoboost-secret", -- platoboost secret
+            { -- pandadevelopment
+                Type = "pandadevelopment", -- type
+                ServiceId = "zyqrin", -- service id
             },                                                      
         },                                                          
     },                                                              
 })
+            
 
 local Tab = Window:Tab({
     Title = "Tab Title",
