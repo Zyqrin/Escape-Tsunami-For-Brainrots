@@ -7,11 +7,6 @@ local Window = WindUI:CreateWindow({
     Title = "Zyqrin Hub || ETFB",
     Icon = "door-open", -- lucide icon. optional
     Author = "by .ftgs and .ftgs", -- optional
-})
-
-local Window = WindUI:CreateWindow({
-    -- ...
-    
     KeySystem = {                                                   
         Note = "Example Key System. With platoboost.",              
         API = {                                                     
