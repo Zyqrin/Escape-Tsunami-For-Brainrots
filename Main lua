@@ -3,6 +3,8 @@
 --------------------------------------------------
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
@@ -17,61 +19,56 @@ local Window = WindUI:CreateWindow({
     Title = "Zyqrin Hub || ETFB",
     Icon = "rbxassetid://73349555895759",
     Author = "by .zyqrin",
+    KeySystem = {                                                   
+        Note = "Example Key System. With platoboost.",              
+        API = {                                                     
+            { -- PlatoBoost
+                Type = "platoboost",                                
+                ServiceId = 19724, -- service id
+                Secret = "7065f5da-64e9-4933-b1ae-f920906e66d0", -- platoboost secret
+            },                                                      
+        },                                                          
+    },                                                              
 })
 
 Window:Tag({
-    Title = "v1.0",
+    Title = "v1.1",
     Icon = "rocket",
     Color = Color3.fromHex("#30ff6a"),
-    Radius = 13, -- from 0 to 13
+    Radius = 13,
 })
 
-local MainTab = Window:Tab({
-    Title = "Main",
-    Icon = "tool-case",
-})
-
-local MenuTab = Window:Tab({
-    Title = "Upgrade",
-    Icon = "shopping-cart",
-})
-
-local BaseTab = Window:Tab({
-    Title = "Base",
-    Icon = "house",
-})
-
-local EventTab = Window:Tab({
-    Title = "Event",
-    Icon = "fan",
-})
+local MainTab = Window:Tab({ Title = "Main", Icon = "tool-case" })
+local MenuTab = Window:Tab({ Title = "Upgrade", Icon = "shopping-cart" })
+local BaseTab = Window:Tab({ Title = "Base", Icon = "house" })
+local EventTab = Window:Tab({ Title = "Event", Icon = "fan" })
 
 --------------------------------------------------
 -- ZONE DATA
 --------------------------------------------------
 local Zones = {
     ["Base"]   = Vector3.new(137.6, 3.2, 24.1),
-    ["Zone 1"] = Vector3.new(200.0, -4.3, 0.0),
-    ["Zone 2"] = Vector3.new(284.9, -4.3, 1.1),
-    ["Zone 3"] = Vector3.new(403.3, -4.3, 7.0),
-    ["Zone 4"] = Vector3.new(536.4, -4.3, 8.5),
-    ["Zone 5"] = Vector3.new(757.9, -4.3, 8.2),
-    ["Zone 6"] = Vector3.new(1067.2, -4.3, 7.9),
-    ["Zone 7"] = Vector3.new(1535.8, -4.3, 2.4),
-    ["Zone 8"] = Vector3.new(2253.7, -4.3, 35.3),
-    ["Zone 9"] = Vector3.new(2609.2, -4.3, -17.6),
+    ["Zone 1"] = Vector3.new(200.0, -2.8, 0.0),
+    ["Zone 2"] = Vector3.new(284.9, -2.8, 0.0),
+    ["Zone 3"] = Vector3.new(398.9, -2.8, 0.0),
+    ["Zone 4"] = Vector3.new(541.5, -2.8, 0.0),
+    ["Zone 5"] = Vector3.new(757.9, -2.8, 0.0),
+    ["Zone 6"] = Vector3.new(1073.7, -2.8,0.0),
+    ["Zone 7"] = Vector3.new(1553.7, -2.8, 0.0),
+    ["Zone 8"] = Vector3.new(2253.7, -2.8, 0.0),
+    ["Zone 9"] = Vector3.new(2609.5, -2.8, 0.0),
 }
 
-local ZoneOrder = {
-    "Base","Zone 1","Zone 2","Zone 3","Zone 4",
-    "Zone 5","Zone 6","Zone 7","Zone 8","Zone 9",
-}
+local ZoneOrder = { "Base","Zone 1","Zone 2","Zone 3","Zone 4","Zone 5","Zone 6","Zone 7","Zone 8","Zone 9" }
 
 --------------------------------------------------
 -- BRAINROT
 --------------------------------------------------
 local BrainrotRoot = workspace:WaitForChild("ActiveBrainrots")
-local SelectedVariants = { Common = true }
+local SelectedVariants = {
+    Celestial=true, Common=true, Cosmic=true, Epic=true, Legendary=true,
+    Mythical=true, Rare=true, Secret=true, Uncommon=true
+}
 
 --------------------------------------------------
 -- REMOTES (UPGRADE)
@@ -79,9 +76,7 @@ local SelectedVariants = { Common = true }
 local UpgradeSpeed = ReplicatedStorage.RemoteFunctions:WaitForChild("UpgradeSpeed")
 local UpgradeCarry = ReplicatedStorage.RemoteFunctions:WaitForChild("UpgradeCarry")
 local RebirthRemote = ReplicatedStorage.RemoteFunctions:WaitForChild("Rebirth")
-local SellRemote = ReplicatedStorage
-    :WaitForChild("RemoteFunctions")
-    :WaitForChild("SellAll")
+local SellRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("SellAll")
 
 --------------------------------------------------
 -- STATE
@@ -90,6 +85,23 @@ local CurrentIndex = 1
 local Moving = false
 local BusyTake = false
 
+-- AUTO TP VARIABLES
+local AutoTP = false
+local TP_TargetZone = "Zone 1"
+local MODE = "ZONE" -- ZONE | TAKE | BASE
+local BrainrotTaken = 0
+local AtZone = false
+local IsTaking = false
+
+-- PATH SETTINGS
+local FRONT_RADIUS = 870
+local BACK_RADIUS = 70
+local STEP_SIZE = 7
+local SLOW_STEP = 1.5
+local STOP_DISTANCE = 3
+local SNAP_DISTANCE = 0.5
+
+-- UPGRADE STATE
 local AutoSpeed = false
 local AutoCarry = false
 local AutoRebirth = false
@@ -108,19 +120,62 @@ local function getHRP()
 end
 
 --------------------------------------------------
+-- WAVE SYSTEM
+--------------------------------------------------
+local function getAllBaseParts(obj)
+    local t = {}
+    for _, c in pairs(obj:GetChildren()) do
+        if c:IsA("BasePart") then
+            table.insert(t, c)
+        else
+            for _, p in pairs(getAllBaseParts(c)) do
+                table.insert(t, p)
+            end
+        end
+    end
+    return t
+end
+
+local function getActiveWaves()
+    local waves = {}
+    local f = Workspace:FindFirstChild("ActiveTsunamis")
+    if not f then return waves end
+    for _, folder in pairs(f:GetChildren()) do
+        for _, p in pairs(getAllBaseParts(folder)) do
+            if p.Name:find("TsunamiWave") then
+                table.insert(waves, p)
+            end
+        end
+    end
+    return waves
+end
+
+local function isWaveBlocking(pos, dir)
+    for _, w in ipairs(getActiveWaves()) do
+        local offset = w.Position - pos
+        local dist = offset.Magnitude
+        local dot = dir:Dot(offset.Unit)
+        if dot > 0 and dist <= FRONT_RADIUS then return true end
+        if dot < 0 and dist <= BACK_RADIUS then return true end
+    end
+    return false
+end
+
+local function waitWaveSafe(fromPos, toPos)
+    local dir = (toPos - fromPos).Unit
+    while AutoTP and isWaveBlocking(fromPos, dir) do
+        RunService.RenderStepped:Wait()
+    end
+end
+
+--------------------------------------------------
 -- SMOOTH MOVE
 --------------------------------------------------
 local function smoothMoveTo(position)
     local hrp = getHRP()
-    local targetCF = CFrame.new(position + Vector3.new(0, 2, 0))
     local dist = (hrp.Position - position).Magnitude
     local time = math.clamp(dist * 0.01, 0.12, 0.6)
-
-    local tween = TweenService:Create(
-        hrp,
-        TweenInfo.new(time, Enum.EasingStyle.Linear),
-        { CFrame = targetCF }
-    )
+    local tween = TweenService:Create(hrp, TweenInfo.new(time, Enum.EasingStyle.Linear), {CFrame = CFrame.new(position + Vector3.new(0,2,0))})
     tween:Play()
     tween.Completed:Wait()
 end
@@ -131,7 +186,6 @@ end
 local function detectCurrentZone()
     local hrp = getHRP()
     local closest, idx = math.huge, 1
-
     for i, name in ipairs(ZoneOrder) do
         local d = (hrp.Position - Zones[name]).Magnitude
         if d < closest then
@@ -148,7 +202,6 @@ local function stepForward()
     if Moving or BusyTake then return end
     Moving = true
     detectCurrentZone()
-
     if CurrentIndex < #ZoneOrder then
         CurrentIndex += 1
         smoothMoveTo(Zones[ZoneOrder[CurrentIndex]])
@@ -160,7 +213,6 @@ local function stepBackward()
     if Moving or BusyTake then return end
     Moving = true
     detectCurrentZone()
-
     if CurrentIndex > 1 then
         CurrentIndex -= 1
         smoothMoveTo(Zones[ZoneOrder[CurrentIndex]])
@@ -169,27 +221,77 @@ local function stepBackward()
 end
 
 --------------------------------------------------
--- TAKE BRAINROT (BUTTON)
+-- PATH SYSTEM
 --------------------------------------------------
-local function takeBrainrotOnce()
-    if BusyTake or Moving then return end
-    BusyTake = true
+local function getZonePath(target)
+    local path = {}
+    local max = tonumber(target:match("%d+"))
+    for i = 1, max do
+        table.insert(path, Zones["Zone "..i] + Vector3.new(0,5,0))
+    end
+    return path
+end
 
-    local returnPos = getHRP().Position
+local function getReturnBasePath(target)
+    local path = {}
+    local max = tonumber(target:match("%d+"))
+    for i = max, 1, -1 do
+        table.insert(path, Zones["Zone "..i] + Vector3.new(0,5,0))
+    end
+    table.insert(path, Zones["Base"] + Vector3.new(0,5,0))
+    return path
+end
+
+--------------------------------------------------
+-- STEP MOVE
+--------------------------------------------------
+local function stepMove(targetPos, nextPos)
+    local hrp = getHRP()
+    while AutoTP and not IsTaking do
+        local dist = (hrp.Position - targetPos).Magnitude
+        if dist <= SNAP_DISTANCE then
+            hrp.CFrame = CFrame.new(targetPos)
+            break
+        end
+        local step = dist <= STOP_DISTANCE and SLOW_STEP or STEP_SIZE
+        hrp.CFrame = CFrame.new(hrp.Position + (targetPos - hrp.Position).Unit * step)
+        RunService.RenderStepped:Wait()
+    end
+    local forwardDir = nextPos and (nextPos - targetPos).Unit or hrp.CFrame.LookVector
+    while AutoTP and isWaveBlocking(targetPos, forwardDir) do
+        RunService.RenderStepped:Wait()
+    end
+end
+
+--------------------------------------------------
+-- TAKE BRAINROT (AUTO & MANUAL)
+--------------------------------------------------
+local function takeBrainrot()
+    if BusyTake then return end
+    BusyTake = true
+    local hrp = getHRP()
+    local standPos = hrp.Position
 
     for _, variant in pairs(BrainrotRoot:GetChildren()) do
         if SelectedVariants[variant.Name] then
             local rendered = variant:FindFirstChild("RenderedBrainrot")
-            if rendered then
-                local root = rendered:FindFirstChild("Root")
-                if root then
-                    local prompt = root:FindFirstChild("TakePrompt", true)
-                    if prompt then
-                        smoothMoveTo(root.Position)
-                        task.wait(0.15)
-                        fireproximityprompt(prompt)
-                        task.wait(0.2)
-                        smoothMoveTo(returnPos)
+            local root = rendered and rendered:FindFirstChild("Root")
+            local prompt = root and root:FindFirstChild("TakePrompt", true)
+            if root and prompt then
+                if AutoTP then waitWaveSafe(standPos, root.Position) end
+                smoothMoveTo(root.Position)
+                task.wait(0.15)
+                fireproximityprompt(prompt)
+                task.wait(0.2)
+                smoothMoveTo(standPos)
+                if AutoTP then
+                    BrainrotTaken += 1
+                    if BrainrotTaken >= 6 then
+                        local path = getZonePath(TP_TargetZone)
+                        local lastPos = path[#path]
+                        if lastPos then hrp.CFrame = CFrame.new(lastPos) end
+                        MODE = "BASE"
+                        AtZone = false
                     end
                 end
             end
@@ -199,24 +301,74 @@ local function takeBrainrotOnce()
     BusyTake = false
 end
 
---------------------------------------------------
--- RESET ON DEATH
---------------------------------------------------
-LocalPlayer.CharacterAdded:Connect(function(char)
-    char:WaitForChild("Humanoid").Died:Connect(function()
-        CurrentIndex = 1
-    end)
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        if AutoTP and MODE == "TAKE" then
+            pcall(takeBrainrot)
+        end
+    end
 end)
 
 --------------------------------------------------
--- AUTO LOOPS (UPGRADE)
+-- AUTO FLOW
+--------------------------------------------------
+local AutoFlowThread
+local function autoFlow()
+    while AutoTP do
+        if MODE == "ZONE" then
+            AtZone = false
+            local path = getZonePath(TP_TargetZone)
+            for i,p in ipairs(path) do
+                stepMove(p, path[i+1])
+            end
+            MODE = "TAKE"
+            AtZone = true
+        elseif MODE == "BASE" then
+            local path = getReturnBasePath(TP_TargetZone)
+            local hrp = getHRP()
+            if path[1] then hrp.CFrame = CFrame.new(path[1]) end
+            for i,p in ipairs(path) do
+                stepMove(p, path[i+1])
+            end
+            BrainrotTaken = 0
+            MODE = "ZONE"
+        end
+        task.wait()
+    end
+end
+
+--------------------------------------------------
+-- RESET ON DEATH
+--------------------------------------------------
+local function resetAll()
+    MODE = "ZONE"
+    BrainrotTaken = 0
+    AtZone = false
+    IsTaking = false
+    BusyTake = false
+
+    if AutoFlowThread then
+        pcall(function() task.cancel(AutoFlowThread) end)
+        AutoFlowThread = nil
+    end
+end
+
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    resetAll()
+    if AutoTP then
+        AutoFlowThread = task.spawn(autoFlow)
+    end
+end)
+
+--------------------------------------------------
+-- AUTO LOOPS (UPGRADE / SELL)
 --------------------------------------------------
 task.spawn(function()
     while task.wait(0.6) do
         if AutoSpeed then
-            pcall(function()
-                UpgradeSpeed:InvokeServer(SpeedAmount)
-            end)
+            pcall(function() UpgradeSpeed:InvokeServer(SpeedAmount) end)
         end
     end
 end)
@@ -224,9 +376,7 @@ end)
 task.spawn(function()
     while task.wait(0.8) do
         if AutoCarry then
-            pcall(function()
-                UpgradeCarry:InvokeServer()
-            end)
+            pcall(function() UpgradeCarry:InvokeServer() end)
         end
     end
 end)
@@ -234,9 +384,7 @@ end)
 task.spawn(function()
     while task.wait(2) do
         if AutoRebirth then
-            pcall(function()
-                RebirthRemote:InvokeServer()
-            end)
+            pcall(function() RebirthRemote:InvokeServer() end)
         end
     end
 end)
@@ -244,187 +392,76 @@ end)
 task.spawn(function()
     while task.wait(1.2) do
         if AutoSell then
-            pcall(function()
-                SellRemote:InvokeServer()
-            end)
+            pcall(function() SellRemote:InvokeServer() end)
         end
     end
 end)
 
 --------------------------------------------------
 -- UI : MAIN
-local ManualSection = MainTab:Section({ 
-    Title = "MANUAL",
-    Box = true,
-    Opened = false,
-})
-ManualSection:Button({
-    Title = "Tp Zone",
-    Desc = "Speed wajib 150+",
-    Icon = "arrow-big-up",
-    Callback = stepForward
-})
+--------------------------------------------------
+local ManualSection = MainTab:Section({ Title = "MANUAL", Box = true, Opened = false })
+ManualSection:Button({ Title = "Tp Zone", Desc = "Speed wajib 150+", Icon = "arrow-big-up", Callback = stepForward })
+ManualSection:Button({ Title = "To Base", Desc = "Speed wajib 150+", Icon = "arrow-big-down", Callback = stepBackward })
+ManualSection:Button({ Title = "Take Brainrot", Desc = "Klik untuk ambil Brainrot aktif", Icon = "plane-takeoff", Callback = takeBrainrot })
 
-ManualSection:Button({
-    Title = "To Base",
-    Desc = "Speed wajib 150+",
-    Icon = "arrow-big-down",
-    Callback = stepBackward
-})
+local PilihSection = MainTab:Section({ Title = "PILIH", Box = true, Opened = false })
 
-ManualSection:Button({
-    Title = "Take Brainrot",
-    Desc = "Klik untuk ambil Brainrot aktif",
-    Icon = "plane-takeoff",
-    Callback = takeBrainrotOnce
-})
-
-ManualSection:Dropdown({
+PilihSection:Dropdown({
     Title = "Brainrot Variant",
-    Desc = "Pilih rarity",
-    Values = { "Celestial","Common","Cosmic","Epic","Legendary","Mythical","Rare","Secret","Uncomman" },
-    Value = { "Celestial" },
+    Desc = "Pilih rarity 1",
+    Values = { "Common","Uncommon","Rare","Epic","Legendary","Mythical","Cosmic","Secret","Celestial" },
+    Value = { "Common","Uncommon","Rare","Epic","Legendary","Mythical","Cosmic","Secret","Celestial" },
     Multi = true,
-    AllowNone = true,
+    AllowNone = false,
     Callback = function(opts)
         SelectedVariants = {}
-        for _, v in pairs(opts) do
-            SelectedVariants[v] = true
+        for _, v in pairs(opts) do SelectedVariants[v] = true end
+    end
+})
+
+local AutoSection = MainTab:Section({ Title = "OTOMATIS", Box = true, Opened = false })
+AutoSection:Toggle({
+    Title = "Auto Main",
+    Icon = "bird",
+    Value = false,
+    Callback = function(state)
+        AutoTP = state
+        if state then
+            resetAll()
+            AutoFlowThread = task.spawn(autoFlow)
+        else
+            resetAll()
         end
     end
 })
-
-local ManualSection = MainTab:Section({ 
-    Title = "OTOMATIS [COMING SOON]",
-    Box = true,
-    Opened = false,
-})
-
-ManualSection:Toggle({
-    Title = "Auto Main",
-    Desc = "Main Otomatis",
-    Icon = "bird",
-    Value = false, -- default value
-    Locked = true,
-    Callback = function(state) 
-        print("Toggle Activated" .. tostring(state))
-    end
-})
-
-ManualSection:Dropdown({
-    Title = "Zone",
-    Desc = "Pilih",
-    Values = { "Celestial", "Cosmic", "Common" },
-    Value = { "Celestial" },
-    Multi = true,
-    AllowNone = true,
-    Locked = true,
-    Callback = function(option) 
-        -- option is a table: { "Category A", "Category B" }
-        print("Categories selected: " .. game:GetService("HttpService"):JSONEncode(option)) 
-    end
+AutoSection:Dropdown({
+    Title = "Select Zone",
+    Values = {"Zone 1","Zone 2","Zone 3","Zone 4","Zone 5","Zone 6","Zone 7","Zone 8","Zone 9"},
+    Value = "Zone 1",
+    Multi = false,
+    AllowNone = false,
+    Callback = function(v) TP_TargetZone = v end
 })
 
 --------------------------------------------------
 -- UI : UPGRADE
+--------------------------------------------------
+local UpgradeSection = MenuTab:Section({ Title = "Upgrade", Box = true, Opened = false })
+UpgradeSection:Toggle({ Title = "Auto Upgrade Speed", Value = false, Callback = function(v) AutoSpeed = v end })
+UpgradeSection:Dropdown({ Title = "Speed Amount", Values = { "1","5","10" }, Value = "10", Multi = false, AllowNone = false, Callback = function(v) SpeedAmount = tonumber(v) end })
+UpgradeSection:Toggle({ Title = "Auto Upgrade Carry", Value = false, Callback = function(v) AutoCarry = v end })
+UpgradeSection:Toggle({ Title = "Auto Rebirth", Value = false, Callback = function(v) AutoRebirth = v end })
+UpgradeSection:Toggle({ Title = "Auto Sell", Value = false, Callback = function(v) AutoSell = v end })
 
-local UpgradeSection = MenuTab:Section({ 
-    Title = "Upgrade",
-    Box = true,
-    Opened = false,
-})
+--------------------------------------------------
+-- BASE & EVENT (COMING SOON)
+--------------------------------------------------
+local BaseSection = BaseTab:Section({ Title = "Base [COMING SOON]", Box = true, Opened = false })
+BaseSection:Toggle({ Title = "Auto Collect", Value = false, Locked = true })
+BaseSection:Toggle({ Title = "Auto Upgrade", Value = false, Locked = true })
 
-UpgradeSection:Toggle({
-    Title = "Auto Upgrade Speed",
-    Value = false,
-    Callback = function(v)
-        AutoSpeed = v
-    end
-})
+local EventSection = EventTab:Section({ Title = "Event [COMING SOON]", Box = true, Opened = false })
+EventSection:Toggle({ Title = "Auto Collect Gold", Value = false, Locked = true })
 
-UpgradeSection:Dropdown({
-    Title = "Speed Amount",
-    Values = { "1","5","10" },
-    Value = "10",
-    Multi = false,
-    AllowNone = false,
-    Callback = function(v)
-        SpeedAmount = tonumber(v)
-    end
-})
-
-UpgradeSection:Toggle({
-    Title = "Auto Upgrade Carry",
-    Value = false,
-    Callback = function(v)
-        AutoCarry = v
-    end
-})
-
-local RebirthSection = MenuTab:Section({ 
-    Title = "Auto Rebirth",
-    Box = true,
-    Opened = false,
-})
-
-
-RebirthSection:Toggle({
-    Title = "Auto Rebirth",
-    Value = false,
-    Callback = function(v)
-        AutoRebirth = v
-    end
-})
-
-local SellSection = MenuTab:Section({ 
-    Title = "Sell",
-    Box = true,
-    Opened = false,
-})
-
-
-SellSection:Toggle({
-    Title = "Auto Sell",
-    Desc = "Menjual semua item otomatis",
-    Value = false,
-    Callback = function(v)
-        AutoSell = v
-    end
-})
-
-local BaseSection = BaseTab:Section({ 
-    Title = "Base [COMING SOON]",
-    Box = true,
-    Opened = false,
-})
-
-BaseSection:Toggle({
-    Title = "Auto Collect",
-    Value = false,
-    Locked = true,
-    Callback = function(v)
-    end
-})
-
-BaseSection:Toggle({
-    Title = "Auto Upgrade",
-    Value = false,
-    Locked = true,
-    Callback = function(v)
-    end
-})
-
-
-local EventSection = EventTab:Section({ 
-    Title = "Event [COMING SOON]",
-    Box = true,
-    Opened = false,
-})
-
-EventSection:Toggle({
-    Title = "Auto Collect Gold",
-    Value = false,
-    Locked = true,
-    Callback = function(v)
-    end
-})
+print("FULL AUTO FARM + WAVE SAFE + RESET ON DEATH + AUTO UPGRADE & SELL LOADED")
