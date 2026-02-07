@@ -7,7 +7,7 @@ local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
-
+local TeleportService = game:GetService("TeleportService")
 --------------------------------------------------
 -- LOAD WIND UI
 --------------------------------------------------
@@ -32,7 +32,7 @@ local Window = WindUI:CreateWindow({
 })
 
 Window:Tag({
-    Title = "v1.1",
+    Title = "v1.2",
     Icon = "rocket",
     Color = Color3.fromHex("#30ff6a"),
     Radius = 13,
@@ -46,6 +46,13 @@ local EventTab = Window:Tab({ Title = "Event", Icon = "fan" })
 --------------------------------------------------
 -- ZONE DATA
 --------------------------------------------------
+local Positions = {
+    Vector3.new(433.3, -9.7, -336.5),
+    Vector3.new(1132.5, 2.2, 521.9),
+    Vector3.new(2566.3, -3.5, -335.7),
+}
+
+
 local Zones = {
     ["Base"]   = Vector3.new(137.6, 3.2, 24.1),
     ["Zone 1"] = Vector3.new(200.0, -2.8, 0.0),
@@ -465,3 +472,64 @@ local EventSection = EventTab:Section({ Title = "Event [COMING SOON]", Box = tru
 EventSection:Toggle({ Title = "Auto Collect Gold", Value = false, Locked = true })
 
 print("FULL AUTO FARM + WAVE SAFE + RESET ON DEATH + AUTO UPGRADE & SELL LOADED")
+
+local function respawnDirectTo(position)
+    local conn
+    conn = LocalPlayer.CharacterAdded:Connect(function(char)
+        local hrp = char:WaitForChild("HumanoidRootPart")
+
+        -- FREEZE 1 FRAME (ANTI BASE SPAWN)
+        hrp.Anchored = true
+        hrp.CFrame = CFrame.new(position)
+        task.wait()
+        hrp.Anchored = false
+
+        conn:Disconnect()
+    end)
+
+    -- Kill character
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.Health = 0
+        end
+    end
+end
+
+--------------------------------------------------
+-- BUTTONS
+--------------------------------------------------
+local ObbySection = EventTab:Section({ Title = "OBBY MANUAL", Box = true, Opened = false })
+
+ObbySection:Button({
+    Title = "Step Obby 1",
+    Icon = "map-pin",
+    Callback = function()
+        respawnDirectTo(Positions[1])
+    end
+})
+
+ObbySection:Button({
+    Title = "Step Obby 2",
+    Icon = "map-pin",
+    Callback = function()
+        respawnDirectTo(Positions[2])
+    end
+})
+
+ObbySection:Button({
+    Title = "Step Obby 3",
+    Icon = "map-pin",
+    Callback = function()
+        respawnDirectTo(Positions[3])
+    end
+})
+
+ObbySection:Button({
+    Title = "Step 4 Rejoin",
+    Icon = "refresh-ccw",
+    Callback = function()
+        TeleportService:Teleport(game.PlaceId, LocalPlayer)
+    end
+})
