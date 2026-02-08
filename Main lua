@@ -38,6 +38,11 @@ Window:Tag({
     Radius = 13,
 })
 
+local InfoTab = Window:Tab({
+    Title = "Info",
+    Icon = "info",
+})
+
 local MainTab = Window:Tab({ Title = "Main", Icon = "tool-case" })
 local MenuTab = Window:Tab({ Title = "Upgrade", Icon = "shopping-cart" })
 local BaseTab = Window:Tab({ Title = "Base", Icon = "house" })
@@ -403,6 +408,42 @@ task.spawn(function()
         end
     end
 end)
+
+
+InfoTab:Paragraph({
+    Title = "Zyqrin Key Premium",
+    Desc = "Buy Key Premium All Game",
+    Image = "rbxassetid://73349555895759",
+    ImageSize = 48,
+})
+
+InfoTab:Paragraph({
+    Title = "List Script",
+    Desc = [[
+• Survive LAVA for Brainrots
+• Escape Tsunami For Brainrots!
+
+Join Discord untuk buy key Premium all game
+]],
+})
+
+-- COPY DISCORD BUTTON
+InfoTab:Button({
+    Title = "COPY LINK DISCORD",
+    Desc = "Salin link Discord Zyqrin",
+    Icon = "copy",
+    Callback = function()
+        pcall(function()
+            setclipboard("https://discord.gg/tHh4xbCsTQ")
+        end)
+
+        WindUI:Notify({
+            Title = "Discord",
+            Content = "Link Discord berhasil di-copy!",
+            Duration = 2
+        })
+    end
+})
 
 --------------------------------------------------
 -- UI : MAIN
