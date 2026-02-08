@@ -500,7 +500,7 @@ end
 --------------------------------------------------
 -- BUTTONS
 --------------------------------------------------
-local ObbySection = EventTab:Section({ Title = "OBBY MANUAL", Box = true, Opened = false })
+local ObbySection = EventTab:Section({ Title = "OBBY [MONEY]", Box = true, Opened = false })
 
 ObbySection:Button({
     Title = "Step Obby 1",
