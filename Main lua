@@ -32,7 +32,7 @@ local Window = WindUI:CreateWindow({
 })
 
 Window:Tag({
-    Title = "v1.2",
+    Title = "v1.3",
     Icon = "rocket",
     Color = Color3.fromHex("#30ff6a"),
     Radius = 13,
@@ -68,10 +68,14 @@ local Zones = {
     ["Zone 6"] = Vector3.new(1073.7, -2.8,0.0),
     ["Zone 7"] = Vector3.new(1553.7, -2.8, 0.0),
     ["Zone 8"] = Vector3.new(2253.7, -2.8, 0.0),
-    ["Zone 9"] = Vector3.new(2609.5, -2.8, 0.0),
+    ["Zone 9"] = Vector3.new(2955.6, -2.8, -25.4),
+    ["Zone 10"] = Vector3.new(3306.5, -2.8, -12.7),
+    ["Zone 11"] = Vector3.new(3666.7, -2.8, -7.4),
+    ["Zone 12"] = Vector3.new(4021.7, -2.8, 4.5),
+
 }
 
-local ZoneOrder = { "Base","Zone 1","Zone 2","Zone 3","Zone 4","Zone 5","Zone 6","Zone 7","Zone 8","Zone 9" }
+local ZoneOrder = { "Base","Zone 1","Zone 2","Zone 3","Zone 4","Zone 5","Zone 6","Zone 7","Zone 8","Zone 9","Zone 10","Zone 11","Zone 12" }
 
 --------------------------------------------------
 -- BRAINROT
@@ -488,7 +492,7 @@ AutoSection:Toggle({
 })
 AutoSection:Dropdown({
     Title = "Select Zone",
-    Values = {"Zone 1","Zone 2","Zone 3","Zone 4","Zone 5","Zone 6","Zone 7","Zone 8","Zone 9"},
+    Values = {"Zone 1","Zone 2","Zone 3","Zone 4","Zone 5","Zone 6","Zone 7","Zone 8","Zone 9","Zone 10","Zone 11","Zone 12" },
     Value = "Zone 1",
     Multi = false,
     AllowNone = false,
