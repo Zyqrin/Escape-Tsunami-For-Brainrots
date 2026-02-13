@@ -13,9 +13,16 @@ local remote = ReplicatedStorage:WaitForChild("Packages")
 
 --// UI
 local Window = WindUI:CreateWindow({
-    Title = "Tes Combine",
-    Icon = "door-open",
-    Author = "by Eisnu",
+    Title = "Zyqrin Hub || ETFB",
+    Icon = "rbxassetid://73349555895759",
+    Author = "by .zyqrin",
+})
+
+Window:Tag({
+    Title = "v1.0",
+    Icon = "rocket",
+    Color = Color3.fromHex("#30ff6a"),
+    Radius = 13,
 })
 
 local Tab = Window:Tab({
