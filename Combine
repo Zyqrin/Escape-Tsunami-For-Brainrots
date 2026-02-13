@@ -13,7 +13,7 @@ local remote = ReplicatedStorage:WaitForChild("Packages")
 
 --// UI
 local Window = WindUI:CreateWindow({
-    Title = "Zyqrin Hub || ETFB",
+    Title = "Zyqrin Hub || Combine",
     Icon = "rbxassetid://73349555895759",
     Author = "by .zyqrin",
 })
