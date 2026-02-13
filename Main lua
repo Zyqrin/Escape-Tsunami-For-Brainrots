@@ -32,7 +32,7 @@ local Window = WindUI:CreateWindow({
 })
 
 Window:Tag({
-    Title = "v1.3",
+    Title = "v1.4",
     Icon = "rocket",
     Color = Color3.fromHex("#30ff6a"),
     Radius = 13,
@@ -47,6 +47,8 @@ local MainTab = Window:Tab({ Title = "Main", Icon = "tool-case" })
 local MenuTab = Window:Tab({ Title = "Upgrade", Icon = "shopping-cart" })
 local BaseTab = Window:Tab({ Title = "Base", Icon = "house" })
 local EventTab = Window:Tab({ Title = "Event", Icon = "fan" })
+local CombineTab = Window:Tab({ Title = "Combine", Icon = "book-copy" })
+
 
 --------------------------------------------------
 -- ZONE DATA
@@ -579,5 +581,29 @@ ObbySection:Button({
     Icon = "refresh-ccw",
     Callback = function()
         TeleportService:Teleport(game.PlaceId, LocalPlayer)
+    end
+})
+
+CombineTab:Button({
+    Title = "Load Combine",
+    Desc = "Klik untuk menjalankan Combine",
+    Locked = false,
+    Callback = function()
+        local url = "https://raw.githubusercontent.com/Zyqrin/Escape-Tsunami-For-Brainrots/main/Combine"
+        
+        local success, result = pcall(function()
+            return game:HttpGet(url)
+        end)
+
+        if success then
+            local func, err = loadstring(result)
+            if func then
+                func()
+            else
+                warn("Error saat load script: " .. err)
+            end
+        else
+            warn("Error saat fetch script: " .. result)
+        end
     end
 })
