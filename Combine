@@ -1,0 +1,300 @@
+--// WIND UI
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+local backpack = player:WaitForChild("Backpack")
+
+local remote = ReplicatedStorage:WaitForChild("Packages")
+    :WaitForChild("Net")
+    :WaitForChild("RF/SpawnMachine.Action")
+
+--// UI
+local Window = WindUI:CreateWindow({
+    Title = "Tes Combine",
+    Icon = "door-open",
+    Author = "by Eisnu",
+})
+
+local Tab = Window:Tab({
+    Title = "Auto Combine",
+    Icon = "bird",
+})
+
+-- =====================================
+-- RESPAWN SAFE SYSTEM
+-- =====================================
+player.CharacterAdded:Connect(function()
+    task.wait(1)
+    print("🔄 Respawn detected - System continuing...")
+end)
+
+-- =====================================
+-- SAFE CHARACTER
+-- =====================================
+local function getCharacter()
+    return player.Character or player.CharacterAdded:Wait()
+end
+
+local function getHRP()
+    return getCharacter():WaitForChild("HumanoidRootPart")
+end
+
+local function getHumanoid()
+    return getCharacter():WaitForChild("Humanoid")
+end
+
+-- =====================================
+-- SAFE MACHINE FINDER
+-- =====================================
+local function getMachine(name)
+    local folder = workspace:FindFirstChild("SpawnMachines")
+    if not folder then return nil end
+    return folder:FindFirstChild(name)
+end
+
+-- =====================================
+-- SUPER SCAN VARIANT
+-- =====================================
+local function getBrainrotName(tool)
+
+    for _,value in pairs(tool:GetAttributes()) do
+        if typeof(value) == "string" and #value > 2 then
+            return value
+        end
+    end
+
+    for _,v in pairs(tool:GetDescendants()) do
+        if v:IsA("StringValue") and #v.Value > 2 then
+            return v.Value
+        end
+    end
+
+    if not string.find(tool.Name,"-") then
+        return tool.Name
+    end
+
+    return nil
+end
+
+-- =====================================
+-- VARIANT SYSTEM
+-- =====================================
+local selectedVariants = {}
+
+local function scanVariants()
+    local list = {}
+
+    for _,tool in pairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") then
+            local realName = getBrainrotName(tool)
+
+            if realName and not table.find(list, realName) then
+                table.insert(list, realName)
+            end
+        end
+    end
+
+    return list
+end
+
+-- =====================================
+-- DROPDOWN
+-- =====================================
+local Dropdown = Tab:Dropdown({
+    Title = "Select Brainrot Variant",
+    Values = {},
+    Multi = true,
+    AllowNone = true,
+    Callback = function(option)
+        selectedVariants = option or {}
+    end
+})
+
+Tab:Button({
+    Title = "🔄 Refresh Variant",
+    Callback = function()
+        Dropdown:Refresh(scanVariants(), true)
+    end
+})
+
+Tab:Button({
+    Title = "♻ Reset Selected",
+    Callback = function()
+        selectedVariants = {}
+        Dropdown:Set({})
+    end
+})
+
+-- =====================================
+-- MATCH SELECTED
+-- =====================================
+local function getMatchingBrainrots()
+
+    local matches = {}
+
+    for _,tool in pairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") then
+            local realName = getBrainrotName(tool)
+
+            if realName and table.find(selectedVariants, realName) then
+                table.insert(matches, tool)
+            end
+        end
+    end
+
+    return matches
+end
+
+-- =====================================
+-- TELEPORT FUNCTION (ANTI DEATH SAFE)
+-- =====================================
+local function teleportToMachineAndBack(machine, action)
+
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        return false
+    end
+
+    local char = getCharacter()
+    local hrp = getHRP()
+    local humanoid = getHumanoid()
+
+    local originalCFrame = hrp.CFrame
+    local oldWalk = humanoid.WalkSpeed
+    local oldJump = humanoid.JumpPower
+
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    hrp.AssemblyAngularVelocity = Vector3.zero
+
+    char:PivotTo(machine:GetPivot())
+    task.wait(0.3)
+
+    local success = false
+    pcall(function()
+        remote:InvokeServer(action, machine)
+        success = true
+    end)
+
+    task.wait(0.4)
+
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        char:PivotTo(originalCFrame)
+        task.wait(0.2)
+        char:PivotTo(originalCFrame)
+    end
+
+    humanoid.WalkSpeed = oldWalk
+    humanoid.JumpPower = oldJump
+
+    return success
+end
+
+-- =====================================
+-- COMBINE CORE (FIXED)
+-- =====================================
+local isCombining = false
+
+local function runCombine(machineName)
+
+    if isCombining then return end
+    isCombining = true
+
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        isCombining = false
+        return
+    end
+
+    local machine = getMachine(machineName)
+    if not machine then
+        isCombining = false
+        return
+    end
+
+    local brainrots = getMatchingBrainrots()
+    if #brainrots < 3 then
+        isCombining = false
+        return
+    end
+
+    local humanoid = getHumanoid()
+    local depositCount = 0
+
+    for _,tool in ipairs(brainrots) do
+        if depositCount >= 3 then break end
+        if not player.Character then
+            isCombining = false
+            return
+        end
+
+        humanoid:EquipTool(tool)
+        task.wait(0.3)
+
+        local ok = teleportToMachineAndBack(machine, "Deposit")
+
+        if ok then
+            depositCount += 1
+            print("📦 Deposit ke:", depositCount)
+        end
+
+        task.wait(0.8)
+    end
+
+    print("📊 Total Deposit:", depositCount)
+
+    if depositCount == 3 then
+        teleportToMachineAndBack(machine, "Combine")
+        print("✅ Combine Confirmed ->", machineName)
+
+        print("⏳ Waiting 25 seconds...")
+        task.wait(25)
+    else
+        print("❌ Deposit kurang dari 3, batal confirm")
+    end
+
+    isCombining = false
+end
+
+-- =====================================
+-- TOGGLES (ANTI FREEZE LOOP)
+-- =====================================
+local autoDefault = false
+local autoArcade = false
+
+Tab:Toggle({
+    Title = "Auto Combine Default",
+    Value = false,
+    Callback = function(state)
+        autoDefault = state
+
+        if state then
+            task.spawn(function()
+                while autoDefault do
+                    runCombine("Default")
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+Tab:Toggle({
+    Title = "Auto Combine Arcade",
+    Value = false,
+    Callback = function(state)
+        autoArcade = state
+
+        if state then
+            task.spawn(function()
+                while autoArcade do
+                    runCombine("Arcade")
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+ 
